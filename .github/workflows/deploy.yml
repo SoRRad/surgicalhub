@@ -1,0 +1,45 @@
+name: Build and Deploy SurgicalHub
+
+on:
+  push:
+    branches:
+      - master        # runs whenever you push any change to master
+  workflow_dispatch:  # also lets you trigger manually from GitHub UI
+
+permissions:
+  contents: write     # needed to push to gh-pages branch
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out your source code
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # 2. Set up Node.js (same version used locally)
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      # 3. Install dependencies (uses package-lock.json for reproducibility)
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Build the React app
+      - name: Build
+        run: npm run build
+        env:
+          CI: false      # prevents warnings from being treated as errors
+
+      # 5. Deploy the build folder to the gh-pages branch
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build
+          publish_branch: gh-pages
+          commit_message: "Auto-deploy: ${{ github.event.head_commit.message }}"
